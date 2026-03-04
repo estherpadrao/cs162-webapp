@@ -5,7 +5,7 @@ import Button from 'react-bootstrap/Button';
 import Stack from 'react-bootstrap/Stack';
 import Alert from 'react-bootstrap/Alert';
 
-const BASE = process.env.REACT_APP_BASE_API_URL || 'http://localhost:5000';
+const BASE = process.env.REACT_APP_BASE_API_URL || '';
 
 export default function AddItemForm({ show, onHide, lists, onChanged }) {
   const [title, setTitle] = useState('');

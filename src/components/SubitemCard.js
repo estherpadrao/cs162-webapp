@@ -5,7 +5,7 @@ import Stack from 'react-bootstrap/Stack';
 import Badge from 'react-bootstrap/Badge';
 import EditItemModal from './EditItemModal';
 
-const BASE = process.env.REACT_APP_BASE_API_URL || 'http://localhost:5000';
+const BASE = process.env.REACT_APP_BASE_API_URL || '';
 
 export default function SubitemCard({ item, onChanged }) {
   const [showEdit, setShowEdit] = useState(false);

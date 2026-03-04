@@ -7,7 +7,7 @@ import Form from 'react-bootstrap/Form';
 import SubitemCard from './SubitemCard';
 import EditItemModal from './EditItemModal';
 
-const BASE = process.env.REACT_APP_BASE_API_URL || 'http://localhost:5000';
+const BASE = process.env.REACT_APP_BASE_API_URL || '';
 
 // status → column label mapping
 const STATUS_LABELS = { todo: 'To Do', doing: 'Doing', done: 'Done' };
