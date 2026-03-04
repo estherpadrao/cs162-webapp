@@ -9,7 +9,7 @@ import Col from 'react-bootstrap/Col';
 import Alert from 'react-bootstrap/Alert';
 import ItemCard from './ItemCard';
 
-const BASE = process.env.REACT_APP_BASE_API_URL || 'http://localhost:5000';
+const BASE = process.env.REACT_APP_BASE_API_URL || '';
 
 const COLUMNS = [
   { status: 'todo', label: 'To Do', variant: 'primary' },
