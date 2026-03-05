@@ -120,7 +120,7 @@ def owns_item(item_id):
 
 @app.route('/api/register', methods=['POST'])
 def register():
-    data = request.get_json()
+    data = request.get_json(silent=True) or request.form or {}
     email = (data.get('email') or '').strip().lower()
     name = (data.get('name') or '').strip()
     password = data.get('password') or ''
@@ -138,7 +138,7 @@ def register():
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    data = request.get_json()
+    data = request.get_json(silent=True) or request.form or {}
     email = (data.get('email') or '').strip().lower()
     password = data.get('password') or ''
     user = User.query.filter_by(email=email).first()
