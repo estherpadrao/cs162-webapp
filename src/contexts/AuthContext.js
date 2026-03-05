@@ -4,6 +4,16 @@ const BASE = process.env.REACT_APP_BASE_API_URL || '';
 
 const AuthContext = createContext(null);
 
+async function parseJsonSafe(response) {
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -11,7 +21,7 @@ export function AuthProvider({ children }) {
   // Check if session is active on mount
   useEffect(() => {
     fetch(`${BASE}/api/profile`, { credentials: 'include' })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => (r.ok ? parseJsonSafe(r) : null))
       .then((data) => {
         setUser(data?.user || null);
         setLoading(false);
@@ -29,8 +39,9 @@ export function AuthProvider({ children }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, name, password }),
     });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || 'Registration failed');
+    const data = await parseJsonSafe(r);
+    if (!r.ok) throw new Error(data?.error || 'Registration failed');
+    if (!data?.user) throw new Error('Registration failed');
     setUser(data.user);
     return data.user;
   };
@@ -42,8 +53,9 @@ export function AuthProvider({ children }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || 'Login failed');
+    const data = await parseJsonSafe(r);
+    if (!r.ok) throw new Error(data?.error || 'Login failed');
+    if (!data?.user) throw new Error('Login failed');
     setUser(data.user);
     return data.user;
   };
