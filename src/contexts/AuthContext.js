@@ -4,14 +4,21 @@ const BASE = process.env.REACT_APP_BASE_API_URL || '';
 
 const AuthContext = createContext(null);
 
-async function parseJsonSafe(response) {
+async function readResponse(response) {
   const text = await response.text();
-  if (!text) return null;
+  if (!text) return { data: null, text: '' };
+
   try {
-    return JSON.parse(text);
+    return { data: JSON.parse(text), text };
   } catch {
-    return null;
+    return { data: null, text };
   }
+}
+
+function buildErrorMessage(prefix, response, data, text) {
+  if (data?.error) return data.error;
+  if (text) return text;
+  return `${prefix} (${response.status})`;
 }
 
 export function AuthProvider({ children }) {
@@ -21,7 +28,11 @@ export function AuthProvider({ children }) {
   // Check if session is active on mount
   useEffect(() => {
     fetch(`${BASE}/api/profile`, { credentials: 'include' })
-      .then((r) => (r.ok ? parseJsonSafe(r) : null))
+      .then(async (r) => {
+        if (!r.ok) return null;
+        const { data } = await readResponse(r);
+        return data;
+      })
       .then((data) => {
         setUser(data?.user || null);
         setLoading(false);
@@ -39,9 +50,13 @@ export function AuthProvider({ children }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, name, password }),
     });
-    const data = await parseJsonSafe(r);
-    if (!r.ok) throw new Error(data?.error || 'Registration failed');
+
+    const { data, text } = await readResponse(r);
+    if (!r.ok) {
+      throw new Error(buildErrorMessage('Registration failed', r, data, text));
+    }
     if (!data?.user) throw new Error('Registration failed');
+
     setUser(data.user);
     return data.user;
   };
@@ -53,11 +68,28 @@ export function AuthProvider({ children }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-    const data = await parseJsonSafe(r);
-    if (!r.ok) throw new Error(data?.error || 'Login failed');
-    if (!data?.user) throw new Error('Login failed');
-    setUser(data.user);
-    return data.user;
+
+    const { data, text } = await readResponse(r);
+    if (!r.ok) {
+      throw new Error(buildErrorMessage('Login failed', r, data, text));
+    }
+
+    if (data?.user) {
+      setUser(data.user);
+      return data.user;
+    }
+
+    // Fallback: if login succeeded but body was empty/non-JSON, verify via profile.
+    const profileResponse = await fetch(`${BASE}/api/profile`, {
+      credentials: 'include',
+    });
+    const { data: profileData } = await readResponse(profileResponse);
+    if (profileResponse.ok && profileData?.user) {
+      setUser(profileData.user);
+      return profileData.user;
+    }
+
+    throw new Error('Login failed');
   };
 
   const logout = async () => {
