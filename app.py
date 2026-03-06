@@ -1,24 +1,22 @@
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import datetime
 import os
+import secrets
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'cs162-dev-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///todo.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SECURE'] = False
 
-CORS(app, supports_credentials=True)
+CORS(app)
 db = SQLAlchemy(app)
 
 
-# ── Models ───────────────────────────────────────────────────────────────────
+# ── Models ────────────────────────────────────────────────────────────────────
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -26,11 +24,18 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     name = db.Column(db.String(80), nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
-    lists = db.relationship('List', backref='user', lazy=True,
-                            cascade='all, delete-orphan')
+    tokens = db.relationship('Token', backref='user', lazy=True, cascade='all, delete-orphan')
+    lists = db.relationship('List', backref='user', lazy=True, cascade='all, delete-orphan')
 
     def to_dict(self):
         return {'id': self.id, 'email': self.email, 'name': self.name}
+
+
+class Token(db.Model):
+    __tablename__ = 'tokens'
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(64), unique=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
 
 class List(db.Model):
@@ -82,30 +87,34 @@ class Item(db.Model):
             'position': self.position,
         }
         if include_subitems:
-            subs = Item.query.filter_by(parent_id=self.id) \
-                             .order_by(Item.position).all()
+            subs = Item.query.filter_by(parent_id=self.id).order_by(Item.position).all()
             d['subitems'] = [s.to_dict(include_subitems=False) for s in subs]
         return d
 
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def get_current_user():
+    auth = request.headers.get('Authorization', '')
+    if not auth.startswith('Bearer '):
+        return None
+    token = Token.query.filter_by(token=auth[7:]).first()
+    return token.user if token else None
+
 
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if 'user_id' not in session:
+        if not get_current_user():
             return jsonify({'error': 'Unauthorized'}), 401
         return f(*args, **kwargs)
     return decorated
 
 
-def get_current_user():
-    return db.session.get(User, session['user_id'])
-
-
 def owns_list(list_id):
     lst = db.session.get(List, list_id)
-    return lst is not None and lst.user_id == session['user_id']
+    user = get_current_user()
+    return lst is not None and user is not None and lst.user_id == user.id
 
 
 def owns_item(item_id):
@@ -113,11 +122,11 @@ def owns_item(item_id):
     return item is not None and owns_list(item.list_id)
 
 
-# ── Auth ─────────────────────────────────────────────────────────────────────
+# ── Auth ──────────────────────────────────────────────────────────────────────
 
 @app.route('/api/register', methods=['POST'])
 def register():
-    data = request.get_json(silent=True) or request.form or {}
+    data = request.get_json(silent=True) or {}
     email = (data.get('email') or '').strip().lower()
     name = (data.get('name') or '').strip()
     password = data.get('password') or ''
@@ -128,26 +137,33 @@ def register():
     user = User(email=email, name=name,
                 password_hash=generate_password_hash(password))
     db.session.add(user)
+    db.session.flush()
+    token = Token(token=secrets.token_hex(32), user_id=user.id)
+    db.session.add(token)
     db.session.commit()
-    session['user_id'] = user.id
-    return jsonify({'user': user.to_dict()}), 201
+    return jsonify({'token': token.token, 'user': user.to_dict()}), 201
 
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    data = request.get_json(silent=True) or request.form or {}
+    data = request.get_json(silent=True) or {}
     email = (data.get('email') or '').strip().lower()
     password = data.get('password') or ''
     user = User.query.filter_by(email=email).first()
     if not user or not check_password_hash(user.password_hash, password):
         return jsonify({'error': 'Invalid email or password'}), 401
-    session['user_id'] = user.id
-    return jsonify({'user': user.to_dict()})
+    token = Token(token=secrets.token_hex(32), user_id=user.id)
+    db.session.add(token)
+    db.session.commit()
+    return jsonify({'token': token.token, 'user': user.to_dict()})
 
 
 @app.route('/api/logout', methods=['POST'])
+@login_required
 def logout():
-    session.pop('user_id', None)
+    auth = request.headers.get('Authorization', '')
+    Token.query.filter_by(token=auth[7:]).delete()
+    db.session.commit()
     return jsonify({'ok': True})
 
 
@@ -162,8 +178,8 @@ def profile():
 @app.route('/api/lists')
 @login_required
 def get_lists():
-    lists = List.query.filter_by(user_id=session['user_id']) \
-                      .order_by(List.position).all()
+    user = get_current_user()
+    lists = List.query.filter_by(user_id=user.id).order_by(List.position).all()
     return jsonify({'lists': [l.to_dict() for l in lists]})
 
 
@@ -174,10 +190,10 @@ def create_list():
     name = (data.get('name') or '').strip()
     if not name:
         return jsonify({'error': 'Name required'}), 400
-    uid = session['user_id']
+    user = get_current_user()
     max_pos = db.session.query(
-        db.func.max(List.position)).filter_by(user_id=uid).scalar() or 0
-    lst = List(name=name, user_id=uid, position=max_pos + 1)
+        db.func.max(List.position)).filter_by(user_id=user.id).scalar() or 0
+    lst = List(name=name, user_id=user.id, position=max_pos + 1)
     db.session.add(lst)
     db.session.commit()
     return jsonify({'list': lst.to_dict()}), 201
@@ -216,8 +232,8 @@ def reorder_list(list_id):
         return jsonify({'error': 'Forbidden'}), 403
     data = request.get_json()
     direction = data.get('direction')
-    lists = List.query.filter_by(user_id=session['user_id']) \
-                      .order_by(List.position).all()
+    user = get_current_user()
+    lists = List.query.filter_by(user_id=user.id).order_by(List.position).all()
     idx = next((i for i, l in enumerate(lists) if l.id == list_id), None)
     if idx is None:
         return jsonify({'error': 'Not found'}), 404
@@ -261,16 +277,10 @@ def create_item():
             return jsonify({'error': 'Invalid date format'}), 400
 
     max_pos = db.session.query(db.func.max(Item.position)) \
-                        .filter_by(list_id=list_id, parent_id=parent_id) \
-                        .scalar() or 0
+                        .filter_by(list_id=list_id, parent_id=parent_id).scalar() or 0
     item = Item(
-        title=title,
-        description=description or None,
-        due_date=due_date,
-        status='todo',
-        list_id=list_id,
-        parent_id=parent_id,
-        position=max_pos + 1
+        title=title, description=description or None, due_date=due_date,
+        status='todo', list_id=list_id, parent_id=parent_id, position=max_pos + 1
     )
     db.session.add(item)
     db.session.commit()
@@ -345,7 +355,7 @@ def move_item_list(item_id):
     return jsonify({'item': item.to_dict()})
 
 
-# ── Init ─────────────────────────────────────────────────────────────────────
+# ── Init ──────────────────────────────────────────────────────────────────────
 
 with app.app_context():
     db.create_all()

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { apiFetch, parseJsonSafe } from '../utils/api';
+import { apiFetch } from '../utils/api';
 
 const AuthContext = createContext(null);
 
@@ -7,20 +7,21 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // On mount: restore session from localStorage token
   useEffect(() => {
-    const controller = new AbortController();
-    apiFetch('/api/profile', { signal: controller.signal })
-      .then((r) => (r.ok ? parseJsonSafe(r) : null))
+    const token = localStorage.getItem('token');
+    if (!token) { setLoading(false); return; }
+    apiFetch('/api/profile')
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => { setUser(data?.user || null); setLoading(false); })
-      .catch((err) => { if (err.name !== 'AbortError') { setUser(null); setLoading(false); } });
-    return () => controller.abort();
+      .catch(() => { setLoading(false); });
   }, []);
 
-  const authRequest = async (endpoint, body) => {
-    const r = await apiFetch(endpoint, { method: 'POST', body });
-    const data = await parseJsonSafe(r);
+  const authRequest = async (path, body) => {
+    const r = await apiFetch(path, { method: 'POST', body });
+    const data = await r.json();
     if (!r.ok) throw new Error(data?.error || 'Request failed');
-    if (!data?.user) throw new Error('Request failed');
+    localStorage.setItem('token', data.token);
     setUser(data.user);
     return data.user;
   };
@@ -33,6 +34,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     await apiFetch('/api/logout', { method: 'POST' });
+    localStorage.removeItem('token');
     setUser(null);
   };
 
