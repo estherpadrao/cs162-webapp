@@ -4,20 +4,17 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import datetime
+import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'cs162-dev-secret-key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todo.db'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'cs162-dev-secret-key')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///todo.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False
 
-CORS(
-    app,
-    supports_credentials=True,
-    origins=['http://localhost:3000', 'http://127.0.0.1:3000']
-)
+CORS(app, supports_credentials=True)
 db = SQLAlchemy(app)
 
 
