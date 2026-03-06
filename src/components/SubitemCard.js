@@ -4,19 +4,20 @@ import Button from 'react-bootstrap/Button';
 import Stack from 'react-bootstrap/Stack';
 import Badge from 'react-bootstrap/Badge';
 import EditItemModal from './EditItemModal';
-import { apiFetch } from '../utils/api';
+import { useApi } from '../contexts/ApiProvider';
 
 export default function SubitemCard({ item, onChanged }) {
+  const api = useApi();
   const [showEdit, setShowEdit] = useState(false);
 
   const moveStatus = async (status) => {
-    const r = await apiFetch(`/api/items/${item.id}/status`, { method: 'POST', body: { status } });
+    const r = await api.post(`/api/items/${item.id}/status`, { status });
     if (r.ok) onChanged?.();
   };
 
   const deleteItem = async () => {
     if (!window.confirm(`Delete "${item.title}"?`)) return;
-    const r = await apiFetch(`/api/items/${item.id}`, { method: 'DELETE' });
+    const r = await api.delete(`/api/items/${item.id}`);
     if (r.ok) onChanged?.();
   };
 

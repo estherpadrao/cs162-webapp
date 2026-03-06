@@ -4,9 +4,10 @@ import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import Stack from 'react-bootstrap/Stack';
 import Alert from 'react-bootstrap/Alert';
-import { apiFetch } from '../utils/api';
+import { useApi } from '../contexts/ApiProvider';
 
 export default function AddItemForm({ show, onHide, lists, onChanged }) {
+  const api = useApi();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -16,7 +17,6 @@ export default function AddItemForm({ show, onHide, lists, onChanged }) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Reset form when opened
   useEffect(() => {
     if (show) {
       setTitle('');
@@ -29,13 +29,11 @@ export default function AddItemForm({ show, onHide, lists, onChanged }) {
     }
   }, [show, lists]);
 
-  // Reset parent selection when list changes
   useEffect(() => {
     setParentId('');
   }, [listId]);
 
   const selectedList = lists.find((l) => l.id === parseInt(listId, 10));
-  // Only top-level items (no parent) can be parents of new subitems
   const availableParents = selectedList
     ? (selectedList.items || []).filter((i) => i.parent_id === null)
     : [];
@@ -59,7 +57,7 @@ export default function AddItemForm({ show, onHide, lists, onChanged }) {
         parent_id: isSubitem ? parseInt(parentId, 10) : null,
       };
 
-      const r = await apiFetch('/api/items', { method: 'POST', body: payload });
+      const r = await api.post('/api/items', payload);
       const data = await r.json();
       if (!r.ok) { setError(data.error || 'Could not add item'); return; }
 

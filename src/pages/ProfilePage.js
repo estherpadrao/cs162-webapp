@@ -3,10 +3,10 @@ import Card from 'react-bootstrap/Card';
 import Button from 'react-bootstrap/Button';
 import Stack from 'react-bootstrap/Stack';
 import Badge from 'react-bootstrap/Badge';
-import { useAuth } from '../contexts/AuthContext';
+import { useUser } from '../contexts/UserProvider';
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout } = useUser();
   const navigate = useNavigate();
 
   const handleLogout = async () => {

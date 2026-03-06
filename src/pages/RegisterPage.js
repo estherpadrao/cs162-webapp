@@ -5,10 +5,10 @@ import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import Alert from 'react-bootstrap/Alert';
 import Stack from 'react-bootstrap/Stack';
-import { useAuth } from '../contexts/AuthContext';
+import { useUser } from '../contexts/UserProvider';
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register } = useUser();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -21,7 +21,7 @@ export default function RegisterPage() {
     setError('');
     setSaving(true);
     try {
-      await register({ name, email, password });
+      await register(email, name, password);
       navigate('/lists');
     } catch (err) {
       setError(err.message || 'Registration failed');

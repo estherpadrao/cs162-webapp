@@ -5,10 +5,10 @@ import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import Alert from 'react-bootstrap/Alert';
 import Stack from 'react-bootstrap/Stack';
-import { useAuth } from '../contexts/AuthContext';
+import { useUser } from '../contexts/UserProvider';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login } = useUser();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,7 +20,7 @@ export default function LoginPage() {
     setError('');
     setSaving(true);
     try {
-      await login({ email, password });
+      await login(email, password);
       navigate('/lists');
     } catch (err) {
       setError(err.message || 'Login failed');

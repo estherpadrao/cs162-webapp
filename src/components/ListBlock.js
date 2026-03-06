@@ -8,7 +8,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Alert from 'react-bootstrap/Alert';
 import ItemCard from './ItemCard';
-import { apiFetch } from '../utils/api';
+import { useApi } from '../contexts/ApiProvider';
 
 const COLUMNS = [
   { status: 'todo', label: 'To Do', variant: 'primary' },
@@ -17,28 +17,28 @@ const COLUMNS = [
 ];
 
 export default function ListBlock({ list, lists, isFirst, isLast, onChanged }) {
+  const api = useApi();
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState(list.name);
 
   const handleRename = async (e) => {
     e.preventDefault();
     if (!newName.trim()) return;
-    const r = await apiFetch(`/api/lists/${list.id}`, { method: 'PUT', body: { name: newName.trim() } });
+    const r = await api.put(`/api/lists/${list.id}`, { name: newName.trim() });
     if (r.ok) { setRenaming(false); onChanged?.(); }
   };
 
   const handleDelete = async () => {
     if (!window.confirm(`Delete list "${list.name}" and all its items?`)) return;
-    const r = await apiFetch(`/api/lists/${list.id}`, { method: 'DELETE' });
+    const r = await api.delete(`/api/lists/${list.id}`);
     if (r.ok) onChanged?.();
   };
 
   const handleReorder = async (direction) => {
-    const r = await apiFetch(`/api/lists/${list.id}/reorder`, { method: 'POST', body: { direction } });
+    const r = await api.post(`/api/lists/${list.id}/reorder`, { direction });
     if (r.ok) onChanged?.();
   };
 
-  // Only top-level items (no parent) are in columns
   const topItems = list.items || [];
 
   return (

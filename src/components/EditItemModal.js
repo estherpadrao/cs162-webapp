@@ -4,9 +4,10 @@ import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import Stack from 'react-bootstrap/Stack';
 import Alert from 'react-bootstrap/Alert';
-import { apiFetch } from '../utils/api';
+import { useApi } from '../contexts/ApiProvider';
 
 export default function EditItemModal({ item, show, onHide, onChanged }) {
+  const api = useApi();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -27,9 +28,8 @@ export default function EditItemModal({ item, show, onHide, onChanged }) {
     setError('');
     setSaving(true);
     try {
-      const r = await apiFetch(`/api/items/${item.id}`, {
-        method: 'PUT',
-        body: { title, description, due_date: dueDate || null },
+      const r = await api.put(`/api/items/${item.id}`, {
+        title, description, due_date: dueDate || null,
       });
       const data = await r.json();
       if (!r.ok) { setError(data.error || 'Could not save'); return; }

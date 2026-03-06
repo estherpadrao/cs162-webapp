@@ -6,13 +6,13 @@ import Badge from 'react-bootstrap/Badge';
 import Form from 'react-bootstrap/Form';
 import SubitemCard from './SubitemCard';
 import EditItemModal from './EditItemModal';
-import { apiFetch } from '../utils/api';
+import { useApi } from '../contexts/ApiProvider';
 
-// status → column label mapping
 const STATUS_LABELS = { todo: 'To Do', doing: 'Doing', done: 'Done' };
 const ALL_STATUSES = ['todo', 'doing', 'done'];
 
 export default function ItemCard({ item, lists, onChanged }) {
+  const api = useApi();
   const [collapsed, setCollapsed] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [movingList, setMovingList] = useState(false);
@@ -21,13 +21,13 @@ export default function ItemCard({ item, lists, onChanged }) {
   const otherStatuses = ALL_STATUSES.filter((s) => s !== item.status);
 
   const moveStatus = async (status) => {
-    const r = await apiFetch(`/api/items/${item.id}/status`, { method: 'POST', body: { status } });
+    const r = await api.post(`/api/items/${item.id}/status`, { status });
     if (r.ok) onChanged?.();
   };
 
   const deleteItem = async () => {
     if (!window.confirm(`Delete "${item.title}"?`)) return;
-    const r = await apiFetch(`/api/items/${item.id}`, { method: 'DELETE' });
+    const r = await api.delete(`/api/items/${item.id}`);
     if (r.ok) onChanged?.();
   };
 
@@ -36,7 +36,7 @@ export default function ItemCard({ item, lists, onChanged }) {
     if (!newListId || newListId === item.list_id) return;
     setMovingList(true);
     try {
-      const r = await apiFetch(`/api/items/${item.id}/movelist`, { method: 'POST', body: { list_id: newListId } });
+      const r = await api.post(`/api/items/${item.id}/movelist`, { list_id: newListId });
       if (r.ok) onChanged?.();
     } finally {
       setMovingList(false);

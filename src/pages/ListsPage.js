@@ -6,16 +6,17 @@ import Spinner from 'react-bootstrap/Spinner';
 
 import ListBlock from '../components/ListBlock';
 import AddItemForm from '../components/AddItemForm';
-import { apiFetch } from '../utils/api';
+import { useApi } from '../contexts/ApiProvider';
 
 export default function ListsPage() {
+  const api = useApi();
   const [lists, setLists] = useState(undefined);
   const [showAddItem, setShowAddItem] = useState(false);
   const [addingList, setAddingList] = useState(false);
 
   const loadLists = async () => {
     try {
-      const r = await apiFetch('/api/lists');
+      const r = await api.get('/api/lists');
       if (!r.ok) { setLists(null); return; }
       const data = await r.json();
       setLists(data.lists || []);
@@ -31,7 +32,7 @@ export default function ListsPage() {
     if (!name || !name.trim()) return;
     setAddingList(true);
     try {
-      const r = await apiFetch('/api/lists', { method: 'POST', body: { name: name.trim() } });
+      const r = await api.post('/api/lists', { name: name.trim() });
       if (r.ok) await loadLists();
     } finally {
       setAddingList(false);

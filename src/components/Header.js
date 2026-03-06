@@ -4,10 +4,10 @@ import Navbar from 'react-bootstrap/Navbar';
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Button from 'react-bootstrap/Button';
-import { useAuth } from '../contexts/AuthContext';
+import { useUser } from '../contexts/UserProvider';
 
 export default function Header() {
-  const { user, logout } = useAuth();
+  const { user, logout } = useUser();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
