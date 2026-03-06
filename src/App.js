@@ -9,6 +9,8 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import ListsPage from './pages/ListsPage';
+import FeedPage from './pages/FeedPage';
+import UserPage from './pages/UserPage';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -36,6 +38,8 @@ export default function App() {
             <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/lists" element={<ProtectedRoute><ListsPage /></ProtectedRoute>} />
+            <Route path="/feed" element={<ProtectedRoute><FeedPage /></ProtectedRoute>} />
+            <Route path="/user/:username" element={<UserPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Container>
