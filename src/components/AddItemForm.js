@@ -4,8 +4,7 @@ import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import Stack from 'react-bootstrap/Stack';
 import Alert from 'react-bootstrap/Alert';
-
-const BASE = process.env.REACT_APP_BASE_API_URL || '';
+import { apiFetch } from '../utils/api';
 
 export default function AddItemForm({ show, onHide, lists, onChanged }) {
   const [title, setTitle] = useState('');
@@ -60,12 +59,7 @@ export default function AddItemForm({ show, onHide, lists, onChanged }) {
         parent_id: isSubitem ? parseInt(parentId, 10) : null,
       };
 
-      const r = await fetch(`${BASE}/api/items`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const r = await apiFetch('/api/items', { method: 'POST', body: payload });
       const data = await r.json();
       if (!r.ok) { setError(data.error || 'Could not add item'); return; }
 

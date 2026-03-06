@@ -1,70 +1,38 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-
-const BASE = process.env.REACT_APP_BASE_API_URL || (typeof window !== 'undefined' && window.location.port === '3000' ? 'http://localhost:5000' : '');
+import { apiFetch, parseJsonSafe } from '../utils/api';
 
 const AuthContext = createContext(null);
-
-async function parseJsonSafe(response) {
-  const text = await response.text();
-  if (!text) return null;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if session is active on mount
   useEffect(() => {
-    fetch(`${BASE}/api/profile`, { credentials: 'include' })
+    const controller = new AbortController();
+    apiFetch('/api/profile', { signal: controller.signal })
       .then((r) => (r.ok ? parseJsonSafe(r) : null))
-      .then((data) => {
-        setUser(data?.user || null);
-        setLoading(false);
-      })
-      .catch(() => {
-        setUser(null);
-        setLoading(false);
-      });
+      .then((data) => { setUser(data?.user || null); setLoading(false); })
+      .catch((err) => { if (err.name !== 'AbortError') { setUser(null); setLoading(false); } });
+    return () => controller.abort();
   }, []);
 
-  const register = async ({ email, name, password }) => {
-    const r = await fetch(`${BASE}/api/register`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, password }),
-    });
+  const authRequest = async (endpoint, body) => {
+    const r = await apiFetch(endpoint, { method: 'POST', body });
     const data = await parseJsonSafe(r);
-    if (!r.ok) throw new Error(data?.error || 'Registration failed');
-    if (!data?.user) throw new Error('Registration failed');
+    if (!r.ok) throw new Error(data?.error || 'Request failed');
+    if (!data?.user) throw new Error('Request failed');
     setUser(data.user);
     return data.user;
   };
 
-  const login = async ({ email, password }) => {
-    const r = await fetch(`${BASE}/api/login`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await parseJsonSafe(r);
-    if (!r.ok) throw new Error(data?.error || 'Login failed');
-    if (!data?.user) throw new Error('Login failed');
-    setUser(data.user);
-    return data.user;
-  };
+  const register = ({ email, name, password }) =>
+    authRequest('/api/register', { email, name, password });
+
+  const login = ({ email, password }) =>
+    authRequest('/api/login', { email, password });
 
   const logout = async () => {
-    await fetch(`${BASE}/api/logout`, {
-      method: 'POST',
-      credentials: 'include',
-    });
+    await apiFetch('/api/logout', { method: 'POST' });
     setUser(null);
   };
 
