@@ -29,6 +29,9 @@ export default function Header() {
 
           {user ? (
             <>
+              <Nav.Link as={NavLink} to="/feed">
+                Feed
+              </Nav.Link>
               <Nav.Link as={NavLink} to="/lists">
                 My Lists
               </Nav.Link>
