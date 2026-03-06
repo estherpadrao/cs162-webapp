@@ -1,4 +1,4 @@
-export const BASE = process.env.REACT_APP_BASE_API_URL || '';
+export const BASE = process.env.REACT_APP_BASE_API_URL || 'http://localhost:5000';
 
 export function apiFetch(path, { body, ...opts } = {}) {
   const init = { credentials: 'include', ...opts };
