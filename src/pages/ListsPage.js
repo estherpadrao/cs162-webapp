@@ -6,8 +6,7 @@ import Spinner from 'react-bootstrap/Spinner';
 
 import ListBlock from '../components/ListBlock';
 import AddItemForm from '../components/AddItemForm';
-
-const BASE = process.env.REACT_APP_BASE_API_URL || '';
+import { apiFetch } from '../utils/api';
 
 export default function ListsPage() {
   const [lists, setLists] = useState(undefined);
@@ -16,7 +15,7 @@ export default function ListsPage() {
 
   const loadLists = async () => {
     try {
-      const r = await fetch(`${BASE}/api/lists`, { credentials: 'include' });
+      const r = await apiFetch('/api/lists');
       if (!r.ok) { setLists(null); return; }
       const data = await r.json();
       setLists(data.lists || []);
@@ -32,12 +31,7 @@ export default function ListsPage() {
     if (!name || !name.trim()) return;
     setAddingList(true);
     try {
-      const r = await fetch(`${BASE}/api/lists`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim() }),
-      });
+      const r = await apiFetch('/api/lists', { method: 'POST', body: { name: name.trim() } });
       if (r.ok) await loadLists();
     } finally {
       setAddingList(false);

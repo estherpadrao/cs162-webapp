@@ -9,7 +9,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'cs162-dev-secret-key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todo.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False
 
@@ -165,8 +165,7 @@ def profile():
 @app.route('/api/lists')
 @login_required
 def get_lists():
-    user = get_current_user()
-    lists = List.query.filter_by(user_id=user.id) \
+    lists = List.query.filter_by(user_id=session['user_id']) \
                       .order_by(List.position).all()
     return jsonify({'lists': [l.to_dict() for l in lists]})
 
@@ -178,10 +177,10 @@ def create_list():
     name = (data.get('name') or '').strip()
     if not name:
         return jsonify({'error': 'Name required'}), 400
-    user = get_current_user()
+    uid = session['user_id']
     max_pos = db.session.query(
-        db.func.max(List.position)).filter_by(user_id=user.id).scalar() or 0
-    lst = List(name=name, user_id=user.id, position=max_pos + 1)
+        db.func.max(List.position)).filter_by(user_id=uid).scalar() or 0
+    lst = List(name=name, user_id=uid, position=max_pos + 1)
     db.session.add(lst)
     db.session.commit()
     return jsonify({'list': lst.to_dict()}), 201
@@ -220,8 +219,7 @@ def reorder_list(list_id):
         return jsonify({'error': 'Forbidden'}), 403
     data = request.get_json()
     direction = data.get('direction')
-    user = get_current_user()
-    lists = List.query.filter_by(user_id=user.id) \
+    lists = List.query.filter_by(user_id=session['user_id']) \
                       .order_by(List.position).all()
     idx = next((i for i, l in enumerate(lists) if l.id == list_id), None)
     if idx is None:

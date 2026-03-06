@@ -6,8 +6,7 @@ import Badge from 'react-bootstrap/Badge';
 import Form from 'react-bootstrap/Form';
 import SubitemCard from './SubitemCard';
 import EditItemModal from './EditItemModal';
-
-const BASE = process.env.REACT_APP_BASE_API_URL || '';
+import { apiFetch } from '../utils/api';
 
 // status → column label mapping
 const STATUS_LABELS = { todo: 'To Do', doing: 'Doing', done: 'Done' };
@@ -22,21 +21,13 @@ export default function ItemCard({ item, lists, onChanged }) {
   const otherStatuses = ALL_STATUSES.filter((s) => s !== item.status);
 
   const moveStatus = async (status) => {
-    const r = await fetch(`${BASE}/api/items/${item.id}/status`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
+    const r = await apiFetch(`/api/items/${item.id}/status`, { method: 'POST', body: { status } });
     if (r.ok) onChanged?.();
   };
 
   const deleteItem = async () => {
     if (!window.confirm(`Delete "${item.title}"?`)) return;
-    const r = await fetch(`${BASE}/api/items/${item.id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    });
+    const r = await apiFetch(`/api/items/${item.id}`, { method: 'DELETE' });
     if (r.ok) onChanged?.();
   };
 
@@ -45,12 +36,7 @@ export default function ItemCard({ item, lists, onChanged }) {
     if (!newListId || newListId === item.list_id) return;
     setMovingList(true);
     try {
-      const r = await fetch(`${BASE}/api/items/${item.id}/movelist`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ list_id: newListId }),
-      });
+      const r = await apiFetch(`/api/items/${item.id}/movelist`, { method: 'POST', body: { list_id: newListId } });
       if (r.ok) onChanged?.();
     } finally {
       setMovingList(false);

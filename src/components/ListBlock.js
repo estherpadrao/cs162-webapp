@@ -8,8 +8,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Alert from 'react-bootstrap/Alert';
 import ItemCard from './ItemCard';
-
-const BASE = process.env.REACT_APP_BASE_API_URL || '';
+import { apiFetch } from '../utils/api';
 
 const COLUMNS = [
   { status: 'todo', label: 'To Do', variant: 'primary' },
@@ -24,34 +23,18 @@ export default function ListBlock({ list, lists, isFirst, isLast, onChanged }) {
   const handleRename = async (e) => {
     e.preventDefault();
     if (!newName.trim()) return;
-    const r = await fetch(`${BASE}/api/lists/${list.id}`, {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newName.trim() }),
-    });
-    if (r.ok) {
-      setRenaming(false);
-      onChanged?.();
-    }
+    const r = await apiFetch(`/api/lists/${list.id}`, { method: 'PUT', body: { name: newName.trim() } });
+    if (r.ok) { setRenaming(false); onChanged?.(); }
   };
 
   const handleDelete = async () => {
     if (!window.confirm(`Delete list "${list.name}" and all its items?`)) return;
-    const r = await fetch(`${BASE}/api/lists/${list.id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    });
+    const r = await apiFetch(`/api/lists/${list.id}`, { method: 'DELETE' });
     if (r.ok) onChanged?.();
   };
 
   const handleReorder = async (direction) => {
-    const r = await fetch(`${BASE}/api/lists/${list.id}/reorder`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ direction }),
-    });
+    const r = await apiFetch(`/api/lists/${list.id}/reorder`, { method: 'POST', body: { direction } });
     if (r.ok) onChanged?.();
   };
 

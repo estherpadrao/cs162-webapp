@@ -4,8 +4,7 @@ import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import Stack from 'react-bootstrap/Stack';
 import Alert from 'react-bootstrap/Alert';
-
-const BASE = process.env.REACT_APP_BASE_API_URL || '';
+import { apiFetch } from '../utils/api';
 
 export default function EditItemModal({ item, show, onHide, onChanged }) {
   const [title, setTitle] = useState('');
@@ -28,15 +27,9 @@ export default function EditItemModal({ item, show, onHide, onChanged }) {
     setError('');
     setSaving(true);
     try {
-      const r = await fetch(`${BASE}/api/items/${item.id}`, {
+      const r = await apiFetch(`/api/items/${item.id}`, {
         method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          description,
-          due_date: dueDate || null,
-        }),
+        body: { title, description, due_date: dueDate || null },
       });
       const data = await r.json();
       if (!r.ok) { setError(data.error || 'Could not save'); return; }

@@ -4,28 +4,19 @@ import Button from 'react-bootstrap/Button';
 import Stack from 'react-bootstrap/Stack';
 import Badge from 'react-bootstrap/Badge';
 import EditItemModal from './EditItemModal';
-
-const BASE = process.env.REACT_APP_BASE_API_URL || '';
+import { apiFetch } from '../utils/api';
 
 export default function SubitemCard({ item, onChanged }) {
   const [showEdit, setShowEdit] = useState(false);
 
   const moveStatus = async (status) => {
-    const r = await fetch(`${BASE}/api/items/${item.id}/status`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
+    const r = await apiFetch(`/api/items/${item.id}/status`, { method: 'POST', body: { status } });
     if (r.ok) onChanged?.();
   };
 
   const deleteItem = async () => {
     if (!window.confirm(`Delete "${item.title}"?`)) return;
-    const r = await fetch(`${BASE}/api/items/${item.id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    });
+    const r = await apiFetch(`/api/items/${item.id}`, { method: 'DELETE' });
     if (r.ok) onChanged?.();
   };
 
